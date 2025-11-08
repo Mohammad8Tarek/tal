@@ -32,6 +32,7 @@ const BuildingsAndRoomsPage: React.FC = () => {
     const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
     const [editingRoom, setEditingRoom] = useState<Room | null>(null);
     const [roomFormData, setRoomFormData] = useState({ floorId: '', roomNumber: '', capacity: '2' });
+    const [modalSelectedBuildingId, setModalSelectedBuildingId] = useState<string>('');
     
     // State for bulk actions
     const [selectedRooms, setSelectedRooms] = useState<Set<number>>(new Set());
@@ -152,18 +153,26 @@ const BuildingsAndRoomsPage: React.FC = () => {
     
     const openAddRoomModal = (floorId: number) => {
         setEditingRoom(null);
+        const floor = floors.find(f => f.id === floorId);
+        setModalSelectedBuildingId(floor ? String(floor.buildingId) : '');
         setRoomFormData({ floorId: String(floorId), roomNumber: '', capacity: '2' });
         setIsRoomModalOpen(true);
     };
     
     const openEditRoomModal = (room: Room) => {
+        const floor = floors.find(f => f.id === room.floorId);
         setEditingRoom(room);
+        setModalSelectedBuildingId(floor ? String(floor.buildingId) : '');
         setRoomFormData({ ...room, floorId: String(room.floorId), capacity: String(room.capacity) });
         setIsRoomModalOpen(true);
     };
     
     const handleRoomSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!roomFormData.floorId) {
+            showToast(t('errors.generic'), 'error'); // A more specific error would be better
+            return;
+        }
         const isDuplicate = rooms.some(r => r.roomNumber.trim().toLowerCase() === roomFormData.roomNumber.trim().toLowerCase() && r.id !== editingRoom?.id);
         if (isDuplicate) {
             showToast(t('errors.duplicateRoomNumber', { number: roomFormData.roomNumber }), 'error');
@@ -403,11 +412,44 @@ const BuildingsAndRoomsPage: React.FC = () => {
             )}
             {isRoomModalOpen && canManage && (
                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-lg">
                         <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-200">{editingRoom ? t('housing.editRoom') : t('housing.addRoom')}</h2>
                         <form onSubmit={handleRoomSubmit}>
                              <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2"><label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('housing.floor')}</label><select value={roomFormData.floorId} onChange={e => setRoomFormData(p => ({...p, floorId: e.target.value}))} required className={formInputClass}><option value="" disabled>-- {t('select')} --</option>{floors.map(f => (<option key={f.id} value={f.id}>{f.floorNumber} ({buildings.find(b=>b.id===f.buildingId)?.name})</option>))}</select></div>
+                                <div className="col-span-2">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('housing.buildings')}</label>
+                                            <select 
+                                                value={modalSelectedBuildingId} 
+                                                onChange={e => {
+                                                    setModalSelectedBuildingId(e.target.value);
+                                                    setRoomFormData(p => ({...p, floorId: ''}));
+                                                }} 
+                                                required 
+                                                className={formInputClass}
+                                            >
+                                                <option value="" disabled>-- {t('select')} --</option>
+                                                {buildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('housing.floor')}</label>
+                                            <select 
+                                                value={roomFormData.floorId} 
+                                                onChange={e => setRoomFormData(p => ({...p, floorId: e.target.value}))} 
+                                                required 
+                                                disabled={!modalSelectedBuildingId}
+                                                className={formInputClass}
+                                            >
+                                                <option value="" disabled>-- {t('select')} --</option>
+                                                {floors.filter(f => f.buildingId === parseInt(modalSelectedBuildingId, 10)).map(f => (
+                                                    <option key={f.id} value={f.id}>{f.floorNumber}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div><label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('housing.roomNumber')}</label><input type="text" value={roomFormData.roomNumber} onChange={e => setRoomFormData(p => ({...p, roomNumber: e.target.value}))} required className={formInputClass}/></div>
                                 <div><label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('housing.capacity')}</label><input type="number" min="1" value={roomFormData.capacity} onChange={e => setRoomFormData(p => ({...p, capacity: e.target.value}))} required className={formInputClass}/></div>
                             </div>
@@ -792,7 +834,6 @@ const RoomsView = ({ buildings, floors, rooms, onAdd, onEdit, canManage, t, fetc
                     <table className="w-full text-sm text-left rtl:text-right text-slate-500 dark:text-slate-400">
                         <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
                             <tr>
-                                {/* FIX: Ensure ref callback returns void to satisfy TypeScript's Ref type. */}
                                 {canManage && <th scope="col" className="p-4"><input type="checkbox" ref={el => { if (el) { el.indeterminate = isIndeterminate; } }} checked={isAllSelected} onChange={handleSelectAll} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600"/></th>}
                                 <th scope="col" className="px-6 py-3">{t('housing.roomNumber')}</th>
                                 <th scope="col" className="px-6 py-3">{t('housing.capacity')}</th>

@@ -173,7 +173,7 @@ const EmployeesPage: React.FC = () => {
             showToast(t('errors.generic'), 'error');
         } finally { 
             // FIX: The state variable `isSubmitting` was being called as a function. It should be updated using its setter `setIsSubmitting`.
-            setIsSubmitting(false); 
+            setIsSubmitting(false);
         }
     };
 

@@ -14,13 +14,13 @@ interface LayoutProps {
 
 const Logo = () => (
   <div className="flex items-center">
-    <svg width="36" height="36" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       {/* Building shape */}
       <path d="M50 10 L85 40 H15 Z" className="fill-primary-600 dark:fill-primary-500" />
       {/* Avenue/Path shape */}
       <path d="M40 90 L25 40 H75 L60 90 Z" className="fill-amber-400" />
     </svg>
-    <span className="self-center text-2xl font-bold sm:text-3xl whitespace-nowrap text-slate-900 dark:text-white ms-2 tracking-wide">
+    <span className="self-center text-2xl font-semibold whitespace-nowrap text-slate-900 dark:text-white ms-3 tracking-wide">
       Tal Avenue
     </span>
   </div>
@@ -128,9 +128,9 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
 
   return (
     <div className={language === 'ar' ? 'font-arabic' : 'font-sans'}>
-      <nav className="fixed top-0 z-50 w-full bg-white border-b border-slate-200 dark:bg-slate-800 dark:border-slate-700">
-        <div className="px-3 py-3 lg:px-5">
-          <div className="flex items-center justify-between">
+      <nav className="fixed top-0 z-50 w-full bg-white border-b border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-20">
+        <div className="px-6 h-full">
+          <div className="flex items-center justify-between h-full">
             <div className="flex items-center justify-start">
               <button onClick={() => setSidebarOpen(!sidebarOpen)} data-drawer-toggle="logo-sidebar" aria-controls="logo-sidebar" type="button" className="inline-flex items-center p-2 text-sm text-slate-500 rounded-lg sm:hidden hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 dark:focus:ring-slate-600">
                   <span className="sr-only">Open sidebar</span>
@@ -138,26 +138,26 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
                </button>
               <Logo />
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-5 rtl:space-x-reverse">
               <button onClick={handleLanguageToggle} className="p-2 text-slate-500 rounded-lg hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700">
-                  <i className="fas fa-language text-lg"></i>
+                  <i className="fas fa-language text-xl"></i>
               </button>
               <button onClick={toggleTheme} className="p-2 text-slate-500 rounded-lg hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700">
-                {theme === 'light' ? <i className="fas fa-moon"></i> : <i className="fas fa-sun"></i>}
+                {theme === 'light' ? <i className="fas fa-moon text-xl"></i> : <i className="fas fa-sun text-xl"></i>}
               </button>
                <button onClick={() => setIsSettingsModalOpen(true)} className="p-2 text-slate-500 rounded-lg hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700">
-                <i className="fas fa-cog"></i>
+                <i className="fas fa-cog text-xl"></i>
               </button>
 
-              <div className="relative mx-3" ref={notificationDropdownRef}>
+              <div className="relative" ref={notificationDropdownRef}>
                   <button onClick={handleBellClick} className="p-2 relative text-slate-500 rounded-lg hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700">
-                      <i className="fas fa-bell"></i>
+                      <i className="fas fa-bell text-xl"></i>
                       {unreadCount > 0 && (
                           <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">{unreadCount}</span>
                       )}
                   </button>
                   {notificationDropdownOpen && (
-                      <div className={`absolute z-50 my-2 w-72 md:w-96 text-base list-none bg-white divide-y divide-slate-100 rounded shadow-lg dark:bg-slate-700 dark:divide-slate-600 ${language === 'ar' ? 'left-0' : 'right-0'}`}>
+                      <div className={`absolute z-50 my-4 w-72 md:w-96 text-base list-none bg-white divide-y divide-slate-100 rounded shadow-lg dark:bg-slate-700 dark:divide-slate-600 ${language === 'ar' ? 'left-0' : 'right-0'}`}>
                           <div className="px-4 py-3 font-bold text-slate-900 dark:text-white">{t('notifications.title')}</div>
                           <ul className="py-1 max-h-80 overflow-y-auto">
                               {notifications.length > 0 ? notifications.map(notif => (
@@ -180,18 +180,18 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
 
               <div className="relative" ref={userDropdownRef}>
                 <div>
-                  <button onClick={() => setUserDropdownOpen(!userDropdownOpen)} type="button" className="flex text-sm bg-slate-800 rounded-full focus:ring-4 focus:ring-slate-300 dark:focus:ring-slate-600" aria-expanded="false">
+                  <button onClick={() => setUserDropdownOpen(!userDropdownOpen)} type="button" className="flex items-center justify-center text-sm bg-primary-500 rounded-full w-10 h-10 text-white focus:ring-4 focus:ring-slate-300 dark:focus:ring-slate-600" aria-expanded="false">
                     <span className="sr-only">Open user menu</span>
                      <img 
                         loading="lazy"
-                        className="w-8 h-8 rounded-full" 
+                        className="w-10 h-10 rounded-full" 
                         src={`data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%233b82f6" /><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="50" fill="white" font-family="sans-serif">${user?.username.charAt(0).toUpperCase()}</text></svg>`}
                         alt="User avatar" 
                      />
                   </button>
                 </div>
                 {userDropdownOpen && (
-                  <div className={`absolute z-50 my-2 w-48 text-base list-none bg-white divide-y divide-slate-100 rounded shadow dark:bg-slate-700 dark:divide-slate-600 ${language === 'ar' ? 'left-0' : 'right-0'}`}>
+                  <div className={`absolute z-50 my-4 w-48 text-base list-none bg-white divide-y divide-slate-100 rounded shadow dark:bg-slate-700 dark:divide-slate-600 ${language === 'ar' ? 'left-0' : 'right-0'}`}>
                     <div className="px-4 py-3">
                       <span className="block text-sm text-slate-900 dark:text-white">{user?.username}</span>
                       <span className="block text-sm font-medium text-slate-500 truncate dark:text-slate-400">{user?.roles.map(r => t(`roles.${r}`)).join(', ')}</span>
@@ -217,13 +217,13 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
       <aside 
         id="logo-sidebar" 
         ref={sidebarRef}
-        className={`fixed top-0 z-40 w-72 h-screen pt-20 transition-transform bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 
+        className={`fixed top-0 z-40 w-72 h-screen pt-20 transition-transform bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 
             ${language === 'ar' ? 'right-0 border-l' : 'left-0 border-r'} 
             ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full' : '-translate-x-full')}
             sm:translate-x-0
         `} 
         aria-label="Sidebar">
-        <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-slate-800">
+        <div className="h-full px-3 pb-4 overflow-y-auto bg-slate-50 dark:bg-slate-800">
           <ul className="space-y-1.5 pt-2">
             {navLinks.map(link => link.visible && (
               <li key={link.to}>
@@ -232,22 +232,15 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
                   end={link.to === "/"} 
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
-                    `relative flex items-center px-4 py-3 rounded-md group transition-all duration-200 font-medium ${
+                    `flex items-center px-4 py-3 rounded-md group transition-all duration-200 font-medium ${
                       isActive 
-                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-300 font-semibold' 
+                        ? 'bg-primary-100 text-primary-600 dark:bg-primary-500/10 dark:text-primary-300 font-semibold' 
                         : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`
                   }
                 >
-                  {({ isActive }) => (
-                    <>
-                      {isActive && (
-                        <span className={`absolute w-1 rounded-full bg-primary-500 dark:bg-primary-400 inset-y-2.5 ${language === 'ar' ? 'right-0' : 'left-0'}`}></span>
-                      )}
-                      <i className={`fas ${link.icon} w-5 h-5 transition duration-75 ${isActive ? 'text-primary-600 dark:text-primary-300' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-500 dark:group-hover:text-slate-400'}`}></i>
-                      <span className="ms-4">{link.label}</span>
-                    </>
-                  )}
+                  <i className={`fas ${link.icon} w-5 h-5 transition duration-75 ${'text-slate-400 dark:text-slate-500 group-hover:text-slate-500 dark:group-hover:text-slate-400'}`}></i>
+                  <span className="ms-4">{link.label}</span>
                 </NavLink>
               </li>
             ))}
@@ -256,7 +249,7 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
       </aside>
 
       <div className={`p-4 ${language === 'ar' ? 'sm:mr-72' : 'sm:ml-72'}`}>
-        <div className="p-4 mt-14">
+        <div className="p-4 mt-20">
           <Outlet />
         </div>
       </div>

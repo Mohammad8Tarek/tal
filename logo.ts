@@ -1,2 +1,2 @@
-// Default placeholder logo (a simple blue square). This is used if no custom logo is uploaded in settings.
-export const defaultLogoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABASURBVHhe7cEBAQAAAIIg/69uSEABAAAAAAAAAAAAAAB8G4gAATEDAAEAAAAAAAAAAAAAALg3IgAATEDAAEAAAPSDAAEAAAAAABoG0hMAAQAAAABJRU5ErkJggg==';
+// The application's SVG logo, base64 encoded. This is used as the default for PDF exports.
+export const defaultLogoBase64 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUwIDEwIEw4NSA0MCBIMTUgWiIgZmlsbD0iIzNiODJmNiIvPjxwYXRoIGQ9Ik00MCA5MCBMMjUgNDAgSDc1IEw2MCA5MCBaIiBmaWxsPSIjZmFjYzE1Ii8+PC9zdmc+';

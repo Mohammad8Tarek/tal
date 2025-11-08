@@ -364,15 +364,16 @@ const ReservationsPage: React.FC = () => {
 
         const hostEmployeeId = parseInt(employeeId, 10);
         const hostAssignment = assignments.find(a => a.employeeId === hostEmployeeId && !a.checkOutDate);
+        let room: Room | undefined;
         if (hostAssignment) {
-            const room = rooms.find(r => r.id === hostAssignment.roomId);
+            room = rooms.find(r => r.id === hostAssignment.roomId);
             if (room && (room.currentOccupancy + guests.length > room.capacity)) {
                 showToast(t('errors.roomCapacityExceeded'), 'error');
                 setIsSubmitting(false);
                 return;
             }
         } else {
-            showToast('Host employee is not currently assigned to a room.', 'error');
+            showToast(t('errors.generic'), 'error'); // Should not happen if UI is correct
             setIsSubmitting(false);
             return;
         }
@@ -388,6 +389,11 @@ const ReservationsPage: React.FC = () => {
                 guests: JSON.stringify(guests),
                 status: 'active',
             });
+
+            if (room) {
+                await roomApi.update(room.id, { currentOccupancy: room.currentOccupancy + guests.length });
+            }
+
             const employee = employeeMap.get(hostEmployeeId);
             logActivity(user!.username, `Created hosting for ${primaryGuest.firstName} by ${employee?.firstName}`);
             showToast(t('reservations.hostingAdded'), 'success');
@@ -405,6 +411,16 @@ const ReservationsPage: React.FC = () => {
         setIsSubmitting(true);
         try {
             await hostingApi.update(hosting.id, { status: 'completed' });
+
+            const hostAssignment = assignments.find(a => a.employeeId === hosting.employeeId && !a.checkOutDate);
+            if (hostAssignment) {
+                const room = rooms.find(r => r.id === hostAssignment.roomId);
+                const guestCount = JSON.parse(hosting.guests).length;
+                if (room) {
+                    await roomApi.update(room.id, { currentOccupancy: Math.max(0, room.currentOccupancy - guestCount) });
+                }
+            }
+
             logActivity(user!.username, `Ended hosting for ${hosting.guestFirstName}`);
             showToast(t('reservations.hostingEnded'), 'success');
             await fetchData();
@@ -751,7 +767,7 @@ const ReservationsPage: React.FC = () => {
                     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
                         <h2 className="text-xl font-bold mb-4">{t('reservations.checkoutTitle')}</h2>
                         <p className="mb-4 text-slate-600 dark:text-slate-400">{t('reservations.checkoutMessage', { name: `${employeeMap.get(assignmentToCheckOut.employeeId)?.firstName} ${employeeMap.get(assignmentToCheckOut.employeeId)?.lastName}` || 'Employee' })}</p>
-                        <div className="mb-6"><label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('reservations.checkOut')}</label><input type="datetime-local" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} required className={formInputClass}/></div>
+                        <div className="mb-6"><label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('reservations.checkout')}</label><input type="datetime-local" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} required className={formInputClass}/></div>
                         <div className="flex justify-end gap-4"><button type="button" onClick={() => setIsCheckOutModalOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 rounded">{t('cancel')}</button><button onClick={handleConfirmCheckOut} disabled={isSubmitting} className="px-4 py-2 bg-primary-600 text-white rounded disabled:bg-primary-400">{isSubmitting ? `${t('saving')}...` : t('reservations.confirmCheckout')}</button></div>
                     </div>
                 </div>

@@ -315,7 +315,6 @@ export const translations = {
         future: 'Future Reservations',
         new: 'New Assignment',
         checkIn: 'Check-in Date',
-        // FIX: Removed duplicate/conflicting `checkOut` key and renamed `checkoutVerb` to `checkout` to match usage.
         checkout: 'Check out',
         room: 'Room',
         reportTitle: 'Active Assignments Report',
@@ -342,7 +341,6 @@ export const translations = {
         guestIdCardNumber: 'Card/ID Number',
         jobTitle: 'Job Title',
         expectedCheckOut: 'Expected Check-out',
-        checkOutDate: 'Expected Check-out Date',
         hosting: 'Hosting',
         newHosting: 'New Hosting Request',
         hostEmployee: 'Host Employee',
@@ -745,7 +743,6 @@ export const translations = {
         future: 'الحجوزات المستقبلية',
         new: 'تسكين جديد',
         checkIn: 'تاريخ الدخول',
-        // FIX: Removed duplicate/conflicting `checkOut` key and renamed `checkoutVerb` to `checkout` to match usage.
         checkout: 'تسجيل خروج',
         room: 'الغرفة',
         reportTitle: 'تقرير التسكين الفعلي',
@@ -772,7 +769,6 @@ export const translations = {
         guestIdCardNumber: 'رقم البطاقة/الهوية',
         jobTitle: 'المسمى الوظيفي',
         expectedCheckOut: 'الخروج المتوقع',
-        checkOutDate: 'تاريخ الخروج المتوقع',
         hosting: 'الاستضافة',
         newHosting: 'طلب استضافة جديد',
         hostEmployee: 'الموظف المستضيف',
