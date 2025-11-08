@@ -36,6 +36,9 @@ export const translations = {
       bulkUpdateSkipped: 'Skipped {count} occupied/reserved rooms that cannot be put into maintenance.',
       bulkUpdateBuildingsSkipped: 'Skipped {count} buildings with occupied rooms that cannot be set to inactive.',
       floorHasRooms: 'Cannot delete floors that contain rooms. Please remove all rooms first. Skipped {count} floors.',
+      incorrectPassword: "Incorrect current password.",
+      passwordMismatch: "New passwords do not match.",
+      passwordTooShort: "New password must be at least 6 characters long."
     },
     statuses: {
       available: 'Available',
@@ -112,6 +115,7 @@ export const translations = {
     layout: {
       profile: 'Profile',
       signOut: 'Sign out',
+      changePassword: 'Change Password',
       dashboard: 'Dashboard',
       housing: 'Housing Management',
       employees: 'Employees',
@@ -158,6 +162,7 @@ export const translations = {
             availableRooms: 'Available Rooms',
             openTickets: 'Open Maintenance Tickets',
             unhousedEmployees: 'Unhoused Employees',
+            // FIX: Corrected duplicate key 'availableRooms' to 'availableRoomsList'.
             availableRoomsList: 'Available Rooms List',
             noAvailableRooms: 'No rooms are currently available.',
         },
@@ -425,6 +430,13 @@ export const translations = {
         reset: 'Settings have been reset to default.',
         logoSizeError: 'Logo image must be smaller than 500KB.',
         resetButton: 'Reset to Default',
+    },
+    changePassword: {
+        title: "Change Password",
+        currentPassword: "Current Password",
+        newPassword: "New Password",
+        confirmNewPassword: "Confirm New Password",
+        success: "Password changed successfully."
     }
   },
   ar: {
@@ -464,6 +476,9 @@ export const translations = {
       bulkUpdateSkipped: 'تم تخطي {count} غرف مشغولة/محجوزة لا يمكن وضعها في الصيانة.',
       bulkUpdateBuildingsSkipped: 'تم تخطي {count} مبانٍ تحتوي على غرف مشغولة ولا يمكن تعطيلها.',
       floorHasRooms: 'لا يمكن حذف الطوابق التي تحتوي على غرف. يرجى إزالة الغرف أولاً. تم تخطي {count} طوابق.',
+      incorrectPassword: "كلمة المرور الحالية غير صحيحة.",
+      passwordMismatch: "كلمتا المرور الجديدتان غير متطابقتين.",
+      passwordTooShort: "يجب أن لا تقل كلمة المرور الجديدة عن 6 أحرف."
     },
     statuses: {
       available: 'متاحة',
@@ -540,6 +555,7 @@ export const translations = {
     layout: {
       profile: 'الملف الشخصي',
       signOut: 'تسجيل الخروج',
+      changePassword: 'تغيير كلمة المرور',
       dashboard: 'لوحة التحكم',
       housing: 'إدارة السكن',
       employees: 'الموظفين',
@@ -586,6 +602,7 @@ export const translations = {
             availableRooms: 'الغرف المتاحة',
             openTickets: 'طلبات الصيانة المفتوحة',
             unhousedEmployees: 'موظفون غير مسكنين',
+            // FIX: Corrected duplicate key 'availableRooms' to 'availableRoomsList'.
             availableRoomsList: 'قائمة الغرف المتاحة',
             noAvailableRooms: 'لا توجد غرف متاحة حاليًا.',
         },
@@ -853,6 +870,13 @@ export const translations = {
         reset: 'تمت إعادة تعيين الإعدادات إلى الوضع الافتراضي.',
         logoSizeError: 'يجب أن يكون حجم صورة الشعار أقل من 500 كيلوبايت.',
         resetButton: 'إعادة تعيين',
+    },
+    changePassword: {
+        title: "تغيير كلمة المرور",
+        currentPassword: "كلمة المرور الحالية",
+        newPassword: "كلمة المرور الجديدة",
+        confirmNewPassword: "تأكيد كلمة المرور الجديدة",
+        success: "تم تغيير كلمة المرور بنجاح."
     }
   },
 };

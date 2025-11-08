@@ -498,6 +498,17 @@ const userApi = {
         return {...updatedUser[0], roles: JSON.parse(updatedUser[0].roles)};
     },
     delete: (id: number): Promise<void> => executeNonQuery(`DELETE FROM Users WHERE id = ?`, [id]),
+    changePassword: async ({ userId, currentPassword, newPassword }: { userId: number, currentPassword: string, newPassword: string }): Promise<void> => {
+        const results = await executeQuery(`SELECT password FROM Users WHERE id = ?`, [userId]);
+        if (results.length === 0) {
+            throw new Error("User not found");
+        }
+        const storedPassword = results[0].password;
+        if (storedPassword !== currentPassword) {
+            throw new Error("Incorrect current password.");
+        }
+        await executeNonQuery(`UPDATE Users SET password = ? WHERE id = ?`, [newPassword, userId]);
+    },
 };
 
 // --- Test Utility ---

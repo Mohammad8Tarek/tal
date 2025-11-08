@@ -6,6 +6,127 @@ import { useToast } from '../context/ToastContext';
 import { Notification } from '../context/ToastContext';
 import { User } from '../types';
 import ExportSettingsModal from '../components/settings/ExportSettingsModal';
+import { userApi, logActivity } from '../services/apiService';
+
+interface ChangePasswordModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClose }) => {
+    const { user } = useAuth();
+    const { t } = useLanguage();
+    const { showToast } = useToast();
+    
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmNewPassword('');
+            setError('');
+            setIsSubmitting(false);
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            setError(t('login.fillFields'));
+            return;
+        }
+        if (newPassword.length < 6) {
+            setError(t('errors.passwordTooShort'));
+            return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            setError(t('errors.passwordMismatch'));
+            return;
+        }
+        
+        setIsSubmitting(true);
+        try {
+            if (!user) throw new Error("User not found");
+            await userApi.changePassword({
+                userId: user.id,
+                currentPassword,
+                newPassword,
+            });
+            logActivity(user.username, 'Changed password');
+            showToast(t('changePassword.success'), 'success');
+            onClose();
+        } catch (err: any) {
+            setError(t('errors.incorrectPassword'));
+            console.error(err);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    const formInputClass = "w-full p-2 border border-slate-300 rounded bg-slate-50 dark:bg-slate-700 dark:border-slate-600 text-slate-900 dark:text-slate-200";
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('changePassword.title')}</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i className="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('changePassword.currentPassword')}</label>
+                        <input 
+                            type="password" 
+                            value={currentPassword} 
+                            onChange={e => setCurrentPassword(e.target.value)} 
+                            required 
+                            className={formInputClass}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('changePassword.newPassword')}</label>
+                        <input 
+                            type="password" 
+                            value={newPassword} 
+                            onChange={e => setNewPassword(e.target.value)} 
+                            required 
+                            className={formInputClass}
+                        />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('changePassword.confirmNewPassword')}</label>
+                        <input 
+                            type="password" 
+                            value={confirmNewPassword} 
+                            onChange={e => setConfirmNewPassword(e.target.value)} 
+                            required 
+                            className={formInputClass}
+                        />
+                    </div>
+                    {error && <p className="text-sm text-red-500">{error}</p>}
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 rounded">{t('cancel')}</button>
+                        <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-primary-600 text-white rounded disabled:bg-primary-400">
+                            {isSubmitting ? `${t('saving')}...` : t('save')}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 
 interface LayoutProps {
   theme: string;
@@ -36,6 +157,7 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notificationDropdownRef = useRef<HTMLDivElement>(null);
@@ -201,6 +323,11 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
                         <a href="#" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 dark:text-slate-200 dark:hover:text-white">{t('layout.profile')}</a>
                       </li>
                       <li>
+                        <button onClick={() => setIsChangePasswordModalOpen(true)} className="block w-full text-start px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 dark:text-slate-200 dark:hover:text-white">
+                            {t('layout.changePassword')}
+                        </button>
+                      </li>
+                      <li>
                         <button onClick={handleLogout} className="block w-full text-start px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 dark:text-slate-200 dark:hover:text-white">
                           {t('layout.signOut')}
                         </button>
@@ -257,6 +384,10 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
       <ExportSettingsModal 
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+      />
+      <ChangePasswordModal 
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
       />
     </div>
   );
