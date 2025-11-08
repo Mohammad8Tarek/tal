@@ -55,14 +55,26 @@ export const exportToExcel = ({ headers, data, sheetName = 'Sheet1', filename, s
     ws['!cols'] = colWidths;
 
     // Styling
+    const thinBorder = {
+        top: { style: "thin", color: { rgb: "D3D3D3" } },
+        bottom: { style: "thin", color: { rgb: "D3D3D3" } },
+        left: { style: "thin", color: { rgb: "D3D3D3" } },
+        right: { style: "thin", color: { rgb: "D3D3D3" } },
+    };
+
     const headerStyle = {
+        // Note: Custom fonts like Poppins are not reliably supported in XLSX.js. Sticking to standard styles.
         font: { bold: true, color: { rgb: "FFFFFF" } },
         fill: { fgColor: { rgb: settings.headerColor.replace('#', '') } },
-        alignment: { horizontal: 'center', vertical: 'center' }
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: thinBorder,
     };
     const evenRowStyle = { fill: { fgColor: { rgb: "F7F7F7" } } };
     const oddRowStyle = { fill: { fgColor: { rgb: "FFFFFF" } } };
-    const cellStyle = { alignment: { horizontal: 'center', vertical: 'center' } };
+    const cellStyle = { 
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: thinBorder,
+    };
 
     // Apply styles
     const range = XLSX.utils.decode_range(ws['!ref']!);

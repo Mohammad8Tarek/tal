@@ -175,9 +175,12 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
                 <div>
                   <button onClick={() => setUserDropdownOpen(!userDropdownOpen)} type="button" className="flex text-sm bg-slate-800 rounded-full focus:ring-4 focus:ring-slate-300 dark:focus:ring-slate-600" aria-expanded="false">
                     <span className="sr-only">Open user menu</span>
-                    <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold">
-                        {user?.username.charAt(0).toUpperCase()}
-                    </div>
+                     <img 
+                        loading="lazy"
+                        className="w-8 h-8 rounded-full" 
+                        src={`data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%233b82f6" /><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" font-size="50" fill="white" font-family="sans-serif">${user?.username.charAt(0).toUpperCase()}</text></svg>`}
+                        alt="User avatar" 
+                     />
                   </button>
                 </div>
                 {userDropdownOpen && (
