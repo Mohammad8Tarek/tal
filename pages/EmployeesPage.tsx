@@ -171,8 +171,10 @@ const EmployeesPage: React.FC = () => {
             await fetchEmployees();
         } catch (error: any) {
             showToast(t('errors.generic'), 'error');
-// FIX: The state variable `isSubmitting` was being called as a function. It should be updated using its setter `setIsSubmitting`.
-        } finally { setIsSubmitting(false); }
+        } finally { 
+            // FIX: The state variable `isSubmitting` was being called as a function. It should be updated using its setter `setIsSubmitting`.
+            setIsSubmitting(false); 
+        }
     };
 
     const getStatusBadge = (status: Employee['status']) => {

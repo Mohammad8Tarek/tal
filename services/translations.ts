@@ -315,7 +315,7 @@ export const translations = {
         future: 'Future Reservations',
         new: 'New Assignment',
         checkIn: 'Check-in Date',
-        checkOut: 'Check-out Date',
+        // FIX: Removed duplicate/conflicting `checkOut` key and renamed `checkoutVerb` to `checkout` to match usage.
         checkout: 'Check out',
         room: 'Room',
         reportTitle: 'Active Assignments Report',
@@ -745,7 +745,7 @@ export const translations = {
         future: 'الحجوزات المستقبلية',
         new: 'تسكين جديد',
         checkIn: 'تاريخ الدخول',
-        checkOut: 'تاريخ الخروج',
+        // FIX: Removed duplicate/conflicting `checkOut` key and renamed `checkoutVerb` to `checkout` to match usage.
         checkout: 'تسجيل خروج',
         room: 'الغرفة',
         reportTitle: 'تقرير التسكين الفعلي',

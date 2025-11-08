@@ -73,7 +73,7 @@ const DashboardContent: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 dark:dark-bg-pattern">
             <div className="flex justify-between items-center">
                  <h1 className="text-4xl font-bold text-slate-800 dark:text-white">{t('dashboard.welcome', { name: user?.username })}</h1>
                  <button onClick={() => setIsCustomizeModalOpen(true)} className="px-4 py-2 bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 text-sm">

@@ -12,6 +12,21 @@ interface LayoutProps {
   toggleTheme: () => void;
 }
 
+const Logo = () => (
+  <div className="flex items-center">
+    <svg width="36" height="36" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {/* Building shape */}
+      <path d="M50 10 L85 40 H15 Z" className="fill-primary-600 dark:fill-primary-500" />
+      {/* Avenue/Path shape */}
+      <path d="M40 90 L25 40 H75 L60 90 Z" className="fill-amber-400" />
+    </svg>
+    <span className="self-center text-2xl font-bold sm:text-3xl whitespace-nowrap text-slate-900 dark:text-white ms-2 tracking-wide">
+      Tal Avenue
+    </span>
+  </div>
+);
+
+
 const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -121,7 +136,7 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
                   <span className="sr-only">Open sidebar</span>
                   <i className="fas fa-bars w-6 h-6"></i>
                </button>
-              <span className="self-center text-3xl font-bold sm:text-4xl whitespace-nowrap text-slate-900 dark:text-white ms-3 tracking-wide">Tal Avenue</span>
+              <Logo />
             </div>
             <div className="flex items-center">
               <button onClick={handleLanguageToggle} className="p-2 text-slate-500 rounded-lg hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700">

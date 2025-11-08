@@ -16,19 +16,20 @@ const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ data }) => {
     const navigate = useNavigate();
 
     const availableRooms = data.rooms.filter(r => r.status === 'available' && r.currentOccupancy < r.capacity);
+    const neumorphicContainer = "bg-slate-50 dark:bg-slate-800 rounded-2xl animate-fade-in-up shadow-[5px_5px_10px_#d1d9e6,-5px_-5px_10px_#ffffff] dark:shadow-[5px_5px_10px_#1e293b,-5px_-5px_10px_#334155]";
 
     return (
         <div className="space-y-6">
             {settings.stats && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard icon="fa-door-open" title={t('dashboard.supervisor.availableRooms')} value={data.stats.availableRooms} color="bg-green-500" onClick={() => navigate('/housing')} />
-                    <StatCard icon="fa-wrench" title={t('dashboard.supervisor.openTickets')} value={data.stats.openMaintenance} color="bg-yellow-500" onClick={() => navigate('/maintenance')} />
-                    <StatCard icon="fa-user-plus" title={t('dashboard.supervisor.unhousedEmployees')} value={data.stats.unhousedEmployees} color="bg-primary-500" onClick={() => navigate('/employees')} />
+                    <StatCard icon="fa-door-open" title={t('dashboard.supervisor.availableRooms')} value={data.stats.availableRooms} gradient="bg-gradient-to-br from-green-500 to-green-600" onClick={() => navigate('/housing')} />
+                    <StatCard icon="fa-wrench" title={t('dashboard.supervisor.openTickets')} value={data.stats.openMaintenance} gradient="bg-gradient-to-br from-yellow-500 to-yellow-600" onClick={() => navigate('/maintenance')} />
+                    <StatCard icon="fa-user-plus" title={t('dashboard.supervisor.unhousedEmployees')} value={data.stats.unhousedEmployees} gradient="bg-gradient-to-br from-blue-500 to-blue-600" onClick={() => navigate('/employees')} />
                 </div>
             )}
             
             {settings.availableRooms && (
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md animate-fade-in-up">
+                <div className={neumorphicContainer}>
                     <h3 className="text-lg font-semibold p-4 border-b dark:border-slate-700 text-slate-800 dark:text-slate-200">{t('dashboard.supervisor.availableRoomsList')}</h3>
                     <div className="overflow-y-auto max-h-96">
                         {availableRooms.length > 0 ? (

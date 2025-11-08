@@ -110,7 +110,7 @@ const ReservationsPage: React.FC = () => {
         const assignedIds = new Set(assignments.filter(a => !a.checkOutDate).map(a => a.employeeId));
         return employees.filter(e => e.status === 'active' && !assignedIds.has(e.id));
     }, [employees, assignments]);
-    const availableRooms = useMemo(() => rooms.filter(r => r.currentOccupancy < r.capacity && r.status !== 'maintenance'), [rooms]);
+    const availableRooms = useMemo(() => rooms.filter(r => r.currentOccupancy < r.capacity && r.status !== 'maintenance' && r.status !== 'reserved'), [rooms]);
     const housedEmployees = useMemo(() => {
         const housedEmployeeIds = new Set(assignments.filter(a => !a.checkOutDate).map(a => a.employeeId));
         return employees.filter(e => housedEmployeeIds.has(e.id));

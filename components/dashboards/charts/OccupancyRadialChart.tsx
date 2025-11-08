@@ -14,8 +14,10 @@ const OccupancyRadialChart: React.FC<OccupancyRadialChartProps> = ({ occupancyRa
     const fill = '#3B82F6';
     const textColor = theme === 'dark' ? '#cbd5e1' : '#475569';
 
+    const neumorphicContainer = "bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center h-full animate-fade-in-up shadow-[5px_5px_10px_#d1d9e6,-5px_-5px_10px_#ffffff] dark:shadow-[5px_5px_10px_#1e293b,-5px_-5px_10px_#334155]";
+
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 flex flex-col items-center justify-center h-full animate-fade-in-up">
+        <div className={neumorphicContainer}>
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('dashboard.admin.occupancy')}</h3>
             <ResponsiveContainer width="100%" height={200}>
                 <RadialBarChart

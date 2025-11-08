@@ -58,14 +58,19 @@ const LoginPage: React.FC = () => {
             <div className="absolute inset-0 bg-black bg-opacity-30"></div>
             
             {/* Logo */}
-            <div className="relative z-10 text-center mb-10">
-                <h1 className="text-6xl font-bold font-sans text-white tracking-wider" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
+            <div className="relative z-10 text-center mb-10 flex flex-col items-center animate-fade-in-up">
+                <svg width="80" height="80" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
+                    <path d="M50 10 L85 40 H15 Z" className="fill-primary-500" />
+                    <path d="M40 90 L25 40 H75 L60 90 Z" className="fill-amber-400" />
+                </svg>
+                <h1 className="text-5xl font-bold font-sans text-white tracking-wider mt-4" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
                     Tal Avenue
                 </h1>
                 <p className="text-lg font-sans text-primary-200 tracking-widest mt-2 uppercase" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.5)' }}>
                     Staff Housing
                 </p>
             </div>
+
 
             {/* Login Form Container */}
             <div className="relative z-10 w-full max-w-sm bg-black/20 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden animate-fade-in-up">

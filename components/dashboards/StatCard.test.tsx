@@ -12,7 +12,7 @@ describe('StatCard', () => {
         icon="fa-users"
         title="Total Users"
         value={120}
-        color="bg-blue-500"
+        gradient="bg-blue-500"
       />
     );
 
