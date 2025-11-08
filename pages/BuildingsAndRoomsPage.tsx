@@ -32,6 +32,19 @@ const BuildingsAndRoomsPage: React.FC = () => {
     const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
     const [editingRoom, setEditingRoom] = useState<Room | null>(null);
     const [roomFormData, setRoomFormData] = useState({ floorId: '', roomNumber: '', capacity: '2' });
+    
+    // State for bulk actions
+    const [selectedRooms, setSelectedRooms] = useState<Set<number>>(new Set());
+    const [isBulkStatusModalOpen, setIsBulkStatusModalOpen] = useState(false);
+    const [bulkStatus, setBulkStatus] = useState<'available' | 'maintenance'>('available');
+    
+    const [selectedBuildings, setSelectedBuildings] = useState<Set<number>>(new Set());
+    const [isBulkBuildingStatusModalOpen, setIsBulkBuildingStatusModalOpen] = useState(false);
+    const [bulkBuildingStatus, setBulkBuildingStatus] = useState<Building['status']>('active');
+
+    const [selectedFloors, setSelectedFloors] = useState<Set<number>>(new Set());
+    const [isBulkDeleteFloorModalOpen, setIsBulkDeleteFloorModalOpen] = useState(false);
+
 
     const fetchData = async () => {
         setLoading(true);
@@ -47,6 +60,13 @@ const BuildingsAndRoomsPage: React.FC = () => {
     };
 
     useEffect(() => { fetchData(); }, []);
+    
+    useEffect(() => {
+        setSelectedBuildings(new Set());
+        setSelectedFloors(new Set());
+        setSelectedRooms(new Set());
+    }, [activeTab]);
+
 
     const openAddBuildingModal = () => {
         setEditingBuilding(null);
@@ -167,7 +187,146 @@ const BuildingsAndRoomsPage: React.FC = () => {
             showToast(t('errors.generic'), 'error');
         } finally { setIsSubmitting(false); }
     };
-    
+
+    const handleConfirmBulkStatusChange = async () => {
+        setIsSubmitting(true);
+        const roomsToUpdate = Array.from(selectedRooms).map(id => rooms.find(r => r.id === id)).filter(Boolean) as Room[];
+        
+        const validRoomsToUpdate: Room[] = [];
+        const skippedRooms: Room[] = [];
+
+        if (bulkStatus === 'maintenance') {
+            roomsToUpdate.forEach(room => {
+                if (room.currentOccupancy > 0 || room.status === 'occupied' || room.status === 'reserved') {
+                    skippedRooms.push(room);
+                } else {
+                    validRoomsToUpdate.push(room);
+                }
+            });
+        } else {
+            validRoomsToUpdate.push(...roomsToUpdate);
+        }
+        
+        if (skippedRooms.length > 0) {
+            showToast(t('errors.bulkUpdateSkipped', { count: skippedRooms.length }), 'info');
+        }
+
+        if (validRoomsToUpdate.length === 0) {
+            setIsSubmitting(false);
+            setIsBulkStatusModalOpen(false);
+            if(skippedRooms.length === 0) showToast(t('housing.noRoomsToAction'), 'info');
+            return;
+        }
+
+        try {
+            const updatePromises = validRoomsToUpdate.map(room => roomApi.update(room.id, { status: bulkStatus }));
+            await Promise.all(updatePromises);
+            
+            logActivity(user!.username, `Bulk updated status to ${bulkStatus} for ${validRoomsToUpdate.length} rooms.`);
+            showToast(t('housing.bulkStatusUpdated', { count: validRoomsToUpdate.length }), 'success');
+            
+            await fetchData();
+            setSelectedRooms(new Set());
+        } catch (error) {
+            showToast(t('errors.generic'), 'error');
+        } finally {
+            setIsSubmitting(false);
+            setIsBulkStatusModalOpen(false);
+        }
+    };
+
+    const handleConfirmBulkBuildingStatusChange = async () => {
+        setIsSubmitting(true);
+        const buildingsToUpdate = Array.from(selectedBuildings).map(id => buildings.find(b => b.id === id)).filter(Boolean) as Building[];
+        
+        const validBuildings: Building[] = [];
+        const skippedBuildings: Building[] = [];
+        
+        if (bulkBuildingStatus === 'inactive') {
+            const floorToBuildingMap = new Map(floors.map(f => [f.id, f.buildingId]));
+            const occupiedBuildingIds = new Set<number>();
+            rooms.forEach(room => {
+                if (room.currentOccupancy > 0 || room.status === 'occupied' || room.status === 'reserved') {
+                    const buildingId = floorToBuildingMap.get(room.floorId);
+                    if(buildingId) occupiedBuildingIds.add(buildingId);
+                }
+            });
+            buildingsToUpdate.forEach(b => {
+                if (occupiedBuildingIds.has(b.id)) {
+                    skippedBuildings.push(b);
+                } else {
+                    validBuildings.push(b);
+                }
+            });
+        } else {
+            validBuildings.push(...buildingsToUpdate);
+        }
+        
+        if (skippedBuildings.length > 0) {
+            showToast(t('errors.bulkUpdateBuildingsSkipped', { count: skippedBuildings.length }), 'info');
+        }
+        if (validBuildings.length === 0) {
+            setIsSubmitting(false);
+            setIsBulkBuildingStatusModalOpen(false);
+            return;
+        }
+
+        try {
+            const updatePromises = validBuildings.map(b => buildingApi.update(b.id, { status: bulkBuildingStatus }));
+            await Promise.all(updatePromises);
+            logActivity(user!.username, `Bulk updated status to ${bulkBuildingStatus} for ${validBuildings.length} buildings.`);
+            showToast(t('housing.bulkBuildingStatusUpdated', { count: validBuildings.length }), 'success');
+            await fetchData();
+            setSelectedBuildings(new Set());
+        } catch (error) {
+            showToast(t('errors.generic'), 'error');
+        } finally {
+            setIsSubmitting(false);
+            setIsBulkBuildingStatusModalOpen(false);
+        }
+    };
+
+    const handleConfirmBulkFloorDelete = async () => {
+        setIsSubmitting(true);
+        const floorsToDelete = Array.from(selectedFloors).map(id => floors.find(f => f.id === id)).filter(Boolean) as Floor[];
+        
+        const validFloors: Floor[] = [];
+        const skippedFloors: Floor[] = [];
+        const floorIdsWithRooms = new Set(rooms.map(r => r.floorId));
+        
+        floorsToDelete.forEach(floor => {
+            if (floorIdsWithRooms.has(floor.id)) {
+                skippedFloors.push(floor);
+            } else {
+                validFloors.push(floor);
+            }
+        });
+
+        if (skippedFloors.length > 0) {
+            showToast(t('errors.floorHasRooms', { count: skippedFloors.length }), 'error');
+        }
+
+        if (validFloors.length === 0) {
+            setIsSubmitting(false);
+            setIsBulkDeleteFloorModalOpen(false);
+            return;
+        }
+        
+        try {
+            const deletePromises = validFloors.map(f => floorApi.delete(f.id));
+            await Promise.all(deletePromises);
+            logActivity(user!.username, `Bulk deleted ${validFloors.length} floors.`);
+            showToast(t('housing.bulkFloorsDeleted', { count: validFloors.length }), 'success');
+            await fetchData();
+            setSelectedFloors(new Set());
+        } catch(error) {
+            showToast(t('errors.generic'), 'error');
+        } finally {
+            setIsSubmitting(false);
+            setIsBulkDeleteFloorModalOpen(false);
+        }
+    };
+
     const formInputClass = "w-full p-2 border border-slate-300 rounded bg-slate-50 dark:bg-slate-700 dark:border-slate-600 text-slate-900 dark:text-slate-200";
 
     return (
@@ -193,9 +352,9 @@ const BuildingsAndRoomsPage: React.FC = () => {
 
             {loading ? <div className="p-4 text-center">{t('loading')}...</div> : (
                 <>
-                    {activeTab === 'buildings' && <BuildingsView buildings={buildings} onAdd={openAddBuildingModal} onEdit={openEditBuildingModal} canManage={canManage} t={t} />}
-                    {activeTab === 'floors' && <FloorsView buildings={buildings} floors={floors} onAdd={openAddFloorModal} onEdit={openEditFloorModal} canManage={canManage} t={t} />}
-                    {activeTab === 'rooms' && <RoomsView buildings={buildings} floors={floors} rooms={rooms} onAdd={openAddRoomModal} onEdit={openEditRoomModal} canManage={canManage} t={t} fetchData={fetchData} />}
+                    {activeTab === 'buildings' && <BuildingsView buildings={buildings} onAdd={openAddBuildingModal} onEdit={openEditBuildingModal} canManage={canManage} t={t} selectedBuildings={selectedBuildings} setSelectedBuildings={setSelectedBuildings} onBulkStatusClick={() => setIsBulkBuildingStatusModalOpen(true)} />}
+                    {activeTab === 'floors' && <FloorsView buildings={buildings} floors={floors} rooms={rooms} onAdd={openAddFloorModal} onEdit={openEditFloorModal} canManage={canManage} t={t} selectedFloors={selectedFloors} setSelectedFloors={setSelectedFloors} onBulkDeleteClick={() => setIsBulkDeleteFloorModalOpen(true)} />}
+                    {activeTab === 'rooms' && <RoomsView buildings={buildings} floors={floors} rooms={rooms} onAdd={openAddRoomModal} onEdit={openEditRoomModal} canManage={canManage} t={t} fetchData={fetchData} selectedRooms={selectedRooms} setSelectedRooms={setSelectedRooms} onBulkStatusClick={() => setIsBulkStatusModalOpen(true)} />}
                 </>
             )}
 
@@ -260,52 +419,154 @@ const BuildingsAndRoomsPage: React.FC = () => {
                     </div>
                 </div>
             )}
+             {isBulkStatusModalOpen && canManage && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">{t('housing.bulkStatusModalTitle')}</h2>
+                        <p className="mb-4 text-slate-600 dark:text-slate-400">{t('housing.confirmBulkStatusChange', { count: selectedRooms.size, status: t(`statuses.${bulkStatus}`) })}</p>
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('housing.newStatus')}</label>
+                            <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value as any)} className={formInputClass}>
+                                <option value="available">{t('statuses.available')}</option>
+                                <option value="maintenance">{t('statuses.maintenance')}</option>
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-4">
+                            <button type="button" onClick={() => setIsBulkStatusModalOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 rounded">{t('cancel')}</button>
+                            <button onClick={handleConfirmBulkStatusChange} disabled={isSubmitting} className="px-4 py-2 bg-primary-600 text-white rounded disabled:bg-primary-400">{isSubmitting ? `${t('saving')}...` : t('save')}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+             {isBulkBuildingStatusModalOpen && canManage && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">{t('housing.bulkBuildingStatusModalTitle')}</h2>
+                        <p className="mb-4 text-slate-600 dark:text-slate-400">{t('housing.confirmBulkBuildingStatusChange', { count: selectedBuildings.size, status: t(`statuses.${bulkBuildingStatus}`) })}</p>
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('housing.newStatus')}</label>
+                            <select value={bulkBuildingStatus} onChange={e => setBulkBuildingStatus(e.target.value as any)} className={formInputClass}>
+                                <option value="active">{t('statuses.active')}</option>
+                                <option value="inactive">{t('statuses.inactive')}</option>
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-4">
+                            <button type="button" onClick={() => setIsBulkBuildingStatusModalOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 rounded">{t('cancel')}</button>
+                            <button onClick={handleConfirmBulkBuildingStatusChange} disabled={isSubmitting} className="px-4 py-2 bg-primary-600 text-white rounded disabled:bg-primary-400">{isSubmitting ? `${t('saving')}...` : t('save')}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+             {isBulkDeleteFloorModalOpen && canManage && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">{t('housing.bulkDeleteFloorsModalTitle')}</h2>
+                        <p className="mb-4 text-slate-600 dark:text-slate-400">{t('housing.confirmBulkDeleteFloors', { count: selectedFloors.size })}</p>
+                        <div className="flex justify-end gap-4">
+                            <button type="button" onClick={() => setIsBulkDeleteFloorModalOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 rounded">{t('cancel')}</button>
+                            <button onClick={handleConfirmBulkFloorDelete} disabled={isSubmitting} className="px-4 py-2 bg-red-600 text-white rounded disabled:bg-red-400">{isSubmitting ? `${t('deleting')}...` : t('delete')}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 // --- Sub-components for Tabs ---
 
-const BuildingsView = ({ buildings, onAdd, onEdit, canManage, t }: any) => (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md">
-        <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center">
-            <h2 className="font-semibold text-slate-800 dark:text-slate-200">{t('housing.tabs.buildings')}</h2>
-            {canManage && <button onClick={onAdd} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"><i className="fas fa-plus me-2"></i>{t('housing.addBuilding')}</button>}
-        </div>
-        <div className="relative overflow-x-auto">
-            <table className="w-full text-sm text-left rtl:text-right text-slate-500 dark:text-slate-400">
-                <thead className="text-sm text-slate-500 font-semibold bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
-                    <tr>
-                        <th scope="col" className="px-6 py-3">{t('housing.buildingName')}</th>
-                        <th scope="col" className="px-6 py-3">{t('housing.location')}</th>
-                        <th scope="col" className="px-6 py-3">{t('housing.capacity')}</th>
-                        <th scope="col" className="px-6 py-3">{t('housing.buildingStatus')}</th>
-                        {canManage && <th scope="col" className="px-6 py-3">{t('actions')}</th>}
-                    </tr>
-                </thead>
-                <tbody>
-                    {buildings.map((b: Building) => (
-                        <tr key={b.id} className="bg-white border-b dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">
-                            <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap dark:text-white">{b.name}</td>
-                            <td className="px-6 py-4">{b.location}</td>
-                            <td className="px-6 py-4">{b.capacity}</td>
-                            <td className="px-6 py-4">{t(`statuses.${b.status}`)}</td>
-                            {canManage && <td className="px-6 py-4"><button onClick={() => onEdit(b)} className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">{t('edit')}</button></td>}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    </div>
-);
+const BuildingsView = ({ buildings, onAdd, onEdit, canManage, t, selectedBuildings, setSelectedBuildings, onBulkStatusClick }: any) => {
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedBuildings(new Set(buildings.map((b: Building) => b.id)));
+        } else {
+            setSelectedBuildings(new Set());
+        }
+    };
 
-const FloorsView = ({ buildings, floors, onAdd, onEdit, canManage, t }: any) => {
+    const handleSelect = (id: number) => {
+        const newSelection = new Set(selectedBuildings);
+        if (newSelection.has(id)) newSelection.delete(id);
+        else newSelection.add(id);
+        setSelectedBuildings(newSelection);
+    };
+
+    const numSelected = selectedBuildings.size;
+    const isAllSelected = buildings.length > 0 && numSelected === buildings.length;
+    const isIndeterminate = numSelected > 0 && numSelected < buildings.length;
+
+    return (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md">
+            <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center">
+                <h2 className="font-semibold text-slate-800 dark:text-slate-200">{t('housing.tabs.buildings')}</h2>
+                {canManage && <button onClick={onAdd} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"><i className="fas fa-plus me-2"></i>{t('housing.addBuilding')}</button>}
+            </div>
+             {numSelected > 0 && canManage && (
+                <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border-b dark:border-slate-700 flex items-center gap-4">
+                    <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">{t('housing.buildingsSelected', { count: numSelected })}</span>
+                    <button onClick={onBulkStatusClick} className="px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700">{t('housing.changeStatus')}</button>
+                </div>
+            )}
+            <div className="relative overflow-x-auto">
+                <table className="w-full text-sm text-left rtl:text-right text-slate-500 dark:text-slate-400">
+                    <thead className="text-sm text-slate-500 font-semibold bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
+                        <tr>
+                            {canManage && <th scope="col" className="p-4"><input type="checkbox" ref={el => { if (el) { el.indeterminate = isIndeterminate; } }} checked={isAllSelected} onChange={handleSelectAll} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500" aria-label={t('housing.selectAllBuildings')} /></th>}
+                            <th scope="col" className="px-6 py-3">{t('housing.buildingName')}</th>
+                            <th scope="col" className="px-6 py-3">{t('housing.location')}</th>
+                            <th scope="col" className="px-6 py-3">{t('housing.capacity')}</th>
+                            <th scope="col" className="px-6 py-3">{t('housing.buildingStatus')}</th>
+                            {canManage && <th scope="col" className="px-6 py-3">{t('actions')}</th>}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {buildings.map((b: Building) => (
+                            <tr key={b.id} className={`border-b dark:border-slate-700 ${selectedBuildings.has(b.id) ? 'bg-primary-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-600'}`}>
+                                {canManage && <td className="p-4"><input type="checkbox" checked={selectedBuildings.has(b.id)} onChange={() => handleSelect(b.id)} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500" aria-label={t('housing.selectBuilding', {name: b.name})} /></td>}
+                                <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap dark:text-white">{b.name}</td>
+                                <td className="px-6 py-4">{b.location}</td>
+                                <td className="px-6 py-4">{b.capacity}</td>
+                                <td className="px-6 py-4">{t(`statuses.${b.status}`)}</td>
+                                {canManage && <td className="px-6 py-4"><button onClick={() => onEdit(b)} className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">{t('edit')}</button></td>}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+const FloorsView = ({ buildings, floors, rooms, onAdd, onEdit, canManage, t, selectedFloors, setSelectedFloors, onBulkDeleteClick }: any) => {
     const [selectedBuildingId, setSelectedBuildingId] = useState<string>(buildings[0]?.id.toString() || '');
     
     const filteredFloors = useMemo(() => {
         if (!selectedBuildingId) return [];
         return floors.filter((f: Floor) => f.buildingId === parseInt(selectedBuildingId, 10));
     }, [floors, selectedBuildingId]);
+    
+    useEffect(() => {
+        setSelectedFloors(new Set());
+    }, [selectedBuildingId]);
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedFloors(new Set(filteredFloors.map((f: Floor) => f.id)));
+        } else {
+            setSelectedFloors(new Set());
+        }
+    };
+
+    const handleSelect = (id: number) => {
+        const newSelection = new Set(selectedFloors);
+        if (newSelection.has(id)) newSelection.delete(id);
+        else newSelection.add(id);
+        setSelectedFloors(newSelection);
+    };
+    
+    const numSelected = selectedFloors.size;
+    const isAllSelected = filteredFloors.length > 0 && numSelected === filteredFloors.length;
+    const isIndeterminate = numSelected > 0 && numSelected < filteredFloors.length;
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md">
@@ -317,10 +578,18 @@ const FloorsView = ({ buildings, floors, onAdd, onEdit, canManage, t }: any) => 
                 {canManage && <button onClick={() => onAdd(selectedBuildingId ? parseInt(selectedBuildingId, 10): undefined)} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"><i className="fas fa-plus me-2"></i>{t('housing.addFloor')}</button>}
             </div>
             {selectedBuildingId && (
+            <>
+                {numSelected > 0 && canManage && (
+                    <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border-b dark:border-slate-700 flex items-center gap-4">
+                        <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">{t('housing.floorsSelected', { count: numSelected })}</span>
+                        <button onClick={onBulkDeleteClick} className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700">{t('housing.bulkDelete')}</button>
+                    </div>
+                )}
                 <div className="relative overflow-x-auto">
                     <table className="w-full text-sm text-left rtl:text-right text-slate-500 dark:text-slate-400">
                          <thead className="text-sm text-slate-500 font-semibold bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
                             <tr>
+                                {canManage && <th scope="col" className="p-4"><input type="checkbox" ref={el => { if (el) { el.indeterminate = isIndeterminate; } }} checked={isAllSelected} onChange={handleSelectAll} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500" aria-label={t('housing.selectAllFloors')} /></th>}
                                 <th scope="col" className="px-6 py-3">{t('housing.floorNumber')}</th>
                                 <th scope="col" className="px-6 py-3">{t('housing.description')}</th>
                                 {canManage && <th scope="col" className="px-6 py-3">{t('actions')}</th>}
@@ -328,7 +597,8 @@ const FloorsView = ({ buildings, floors, onAdd, onEdit, canManage, t }: any) => 
                         </thead>
                         <tbody>
                             {filteredFloors.map((f: Floor) => (
-                                <tr key={f.id} className="bg-white border-b dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">
+                                <tr key={f.id} className={`border-b dark:border-slate-700 ${selectedFloors.has(f.id) ? 'bg-primary-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-600'}`}>
+                                    {canManage && <td className="p-4"><input type="checkbox" checked={selectedFloors.has(f.id)} onChange={() => handleSelect(f.id)} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500" aria-label={t('housing.selectFloor', {number: f.floorNumber})} /></td>}
                                     <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap dark:text-white">{f.floorNumber}</td>
                                     <td className="px-6 py-4">{f.description}</td>
                                     {canManage && <td className="px-6 py-4"><button onClick={() => onEdit(f)} className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">{t('edit')}</button></td>}
@@ -337,12 +607,13 @@ const FloorsView = ({ buildings, floors, onAdd, onEdit, canManage, t }: any) => 
                         </tbody>
                     </table>
                 </div>
+            </>
             )}
         </div>
     );
 };
 
-const RoomsView = ({ buildings, floors, rooms, onAdd, onEdit, canManage, t, fetchData }: any) => {
+const RoomsView = ({ buildings, floors, rooms, onAdd, onEdit, canManage, t, fetchData, selectedRooms, setSelectedRooms, onBulkStatusClick }: any) => {
     const { user } = useAuth();
     const { showToast } = useToast();
     const { settings: exportSettings } = useExportSettings();
@@ -365,6 +636,11 @@ const RoomsView = ({ buildings, floors, rooms, onAdd, onEdit, canManage, t, fetc
             setSelectedFloorId('');
         }
     }, [selectedBuildingId, availableFloors]);
+
+    useEffect(() => {
+        // Clear selection when changing floor
+        setSelectedRooms(new Set());
+    }, [selectedFloorId, setSelectedRooms]);
     
     const filteredRooms = useMemo(() => {
         if(!selectedFloorId) return [];
@@ -454,6 +730,30 @@ const RoomsView = ({ buildings, floors, rooms, onAdd, onEdit, canManage, t, fetc
         }
     };
     
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const allIds = new Set(filteredRooms.map((r: Room) => r.id));
+            setSelectedRooms(allIds);
+        } else {
+            setSelectedRooms(new Set());
+        }
+    };
+
+    const handleSelectRoom = (roomId: number) => {
+        const newSelection = new Set(selectedRooms);
+        if (newSelection.has(roomId)) {
+            newSelection.delete(roomId);
+        } else {
+            newSelection.add(roomId);
+        }
+        setSelectedRooms(newSelection);
+    };
+
+    const numSelected = selectedRooms.size;
+    const numTotalOnFloor = filteredRooms.length;
+    const isAllSelected = numTotalOnFloor > 0 && numSelected === numTotalOnFloor;
+    const isIndeterminate = numSelected > 0 && numSelected < numTotalOnFloor;
+    
     const isExporting = isPdfExporting || isExcelExporting;
 
     return (
@@ -481,26 +781,47 @@ const RoomsView = ({ buildings, floors, rooms, onAdd, onEdit, canManage, t, fetc
                 </div>
             </div>
              {selectedFloorId ? (
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredRooms.map((room: Room) => (
-                         <div key={room.id} className={`border dark:border-slate-700 rounded-lg p-3 relative ${room.status === 'maintenance' ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}`}>
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-slate-800 dark:text-white">{room.roomNumber}</h3>
-                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(room.status)}`}>{t(`statuses.${room.status}`)}</span>
-                            </div>
-                            <div className="text-sm text-slate-500 dark:text-slate-400 space-y-1">
-                                <p><i className="fas fa-users w-4 me-1"></i> {t('housing.capacity')}: {room.currentOccupancy} / {room.capacity}</p>
-                            </div>
-                            {canManage && (
-                                <div className="absolute bottom-2 right-2 flex space-x-2 rtl:space-x-reverse">
-                                    <button onClick={() => handleToggleRoomStatus(room, room.status === 'available' ? 'maintenance' : 'available')} title={t('housing.toggleMaintenance')} className="text-slate-400 hover:text-yellow-600" disabled={room.status==='occupied' || room.status==='reserved'}><i className="fas fa-tools text-xs"></i></button>
-                                    <button onClick={() => onEdit(room)} title={t('edit')} className="text-slate-400 hover:text-primary-600"><i className="fas fa-pencil-alt text-xs"></i></button>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                    {filteredRooms.length === 0 && <p className="text-slate-500">{t('housing.noRooms')}</p>}
+                <>
+                {numSelected > 0 && canManage && (
+                    <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border-b dark:border-slate-700 flex items-center gap-4">
+                        <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">{t('housing.roomsSelected', { count: numSelected })}</span>
+                        <button onClick={onBulkStatusClick} className="px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700">{t('housing.changeStatus')}</button>
+                    </div>
+                )}
+                <div className="relative overflow-x-auto">
+                    <table className="w-full text-sm text-left rtl:text-right text-slate-500 dark:text-slate-400">
+                        <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
+                            <tr>
+                                {/* FIX: Ensure ref callback returns void to satisfy TypeScript's Ref type. */}
+                                {canManage && <th scope="col" className="p-4"><input type="checkbox" ref={el => { if (el) { el.indeterminate = isIndeterminate; } }} checked={isAllSelected} onChange={handleSelectAll} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600"/></th>}
+                                <th scope="col" className="px-6 py-3">{t('housing.roomNumber')}</th>
+                                <th scope="col" className="px-6 py-3">{t('housing.capacity')}</th>
+                                <th scope="col" className="px-6 py-3">{t('housing.occupancy')}</th>
+                                <th scope="col" className="px-6 py-3">{t('housing.status')}</th>
+                                {canManage && <th scope="col" className="px-6 py-3">{t('actions')}</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {filteredRooms.map((room: Room) => (
+                             <tr key={room.id} className={`border-b dark:border-slate-700 ${selectedRooms.has(room.id) ? 'bg-primary-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-600'}`}>
+                                {canManage && <td className="p-4"><input type="checkbox" checked={selectedRooms.has(room.id)} onChange={() => handleSelectRoom(room.id)} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600"/></td>}
+                                <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap dark:text-white">{room.roomNumber}</th>
+                                <td className="px-6 py-4">{room.capacity}</td>
+                                <td className="px-6 py-4">{room.currentOccupancy}</td>
+                                <td className="px-6 py-4"><span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusBadge(room.status)}`}>{t(`statuses.${room.status}`)}</span></td>
+                                {canManage && (
+                                    <td className="px-6 py-4 space-x-2 rtl:space-x-reverse whitespace-nowrap">
+                                        <button onClick={() => handleToggleRoomStatus(room, room.status === 'available' ? 'maintenance' : 'available')} title={t('housing.toggleMaintenance')} className="text-slate-400 hover:text-yellow-600 disabled:text-slate-300 disabled:cursor-not-allowed" disabled={room.status==='occupied' || room.status==='reserved'}><i className="fas fa-tools"></i></button>
+                                        <button onClick={() => onEdit(room)} title={t('edit')} className="text-slate-400 hover:text-primary-600"><i className="fas fa-pencil-alt"></i></button>
+                                    </td>
+                                )}
+                            </tr>
+                        ))}
+                         {filteredRooms.length === 0 && <tr><td colSpan={canManage ? 6 : 5} className="text-center py-4 text-slate-500">{t('housing.noRooms')}</td></tr>}
+                        </tbody>
+                    </table>
                 </div>
+                </>
              ) : (
                 <p className="p-4 text-slate-500">{t('housing.selectFloorPrompt')}</p>
              )}

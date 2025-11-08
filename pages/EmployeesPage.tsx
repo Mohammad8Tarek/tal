@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { Employee, DEPARTMENTS, departmentJobTitles } from '../types';
-import { employeeApi, logActivity } from '../services/apiService';
+import { Employee, DEPARTMENTS, departmentJobTitles, Assignment, Room } from '../types';
+import { employeeApi, logActivity, assignmentApi, roomApi } from '../services/apiService';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
@@ -23,6 +23,8 @@ for (const key of DEPARTMENTS) {
 
 const EmployeesPage: React.FC = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
+    const [rooms, setRooms] = useState<Room[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -48,12 +50,24 @@ const EmployeesPage: React.FC = () => {
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [isPdfExporting, setIsPdfExporting] = useState(false);
     const [isExcelExporting, setIsExcelExporting] = useState(false);
+    
+    // Bulk action states
+    const [selectedEmployees, setSelectedEmployees] = useState<Set<number>>(new Set());
+    const [isBulkStatusModalOpen, setIsBulkStatusModalOpen] = useState(false);
+    const [bulkStatus, setBulkStatus] = useState<Employee['status']>('active');
+
 
     const fetchEmployees = async () => {
         setLoading(true);
         try {
-            const data = await employeeApi.getAll();
+            const [data, assignmentsData, roomsData] = await Promise.all([
+                employeeApi.getAll(),
+                assignmentApi.getAll(),
+                roomApi.getAll()
+            ]);
             setEmployees(data);
+            setAssignments(assignmentsData);
+            setRooms(roomsData);
         } catch (error) {
             console.error("Failed to fetch employees", error);
             showToast(t('errors.fetchFailed'), 'error');
@@ -73,6 +87,12 @@ const EmployeesPage: React.FC = () => {
             return matchesSearch && matchesStatus && matchesDepartment;
         });
     }, [employees, searchTerm, statusFilter, departmentFilter]);
+    
+    // Clear selection when filters change
+    useEffect(() => {
+        setSelectedEmployees(new Set());
+    }, [searchTerm, statusFilter, departmentFilter]);
+
 
     const openAddModal = () => {
         const firstDepartment = DEPARTMENTS[0];
@@ -151,6 +171,7 @@ const EmployeesPage: React.FC = () => {
             await fetchEmployees();
         } catch (error: any) {
             showToast(t('errors.generic'), 'error');
+// FIX: The state variable `isSubmitting` was being called as a function. It should be updated using its setter `setIsSubmitting`.
         } finally { setIsSubmitting(false); }
     };
 
@@ -353,6 +374,69 @@ const EmployeesPage: React.FC = () => {
         setIsSubmitting(false);
     };
     
+    // --- Bulk Action Handlers ---
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const allIds = new Set(filteredEmployees.map((emp: Employee) => emp.id));
+            setSelectedEmployees(allIds);
+        } else {
+            setSelectedEmployees(new Set());
+        }
+    };
+
+    const handleSelectEmployee = (employeeId: number) => {
+        const newSelection = new Set(selectedEmployees);
+        if (newSelection.has(employeeId)) {
+            newSelection.delete(employeeId);
+        } else {
+            newSelection.add(employeeId);
+        }
+        setSelectedEmployees(newSelection);
+    };
+    
+    const handleConfirmBulkStatusChange = async () => {
+        setIsSubmitting(true);
+        const employeesToUpdate = Array.from(selectedEmployees).map(id => employees.find(e => e.id === id)).filter(Boolean) as Employee[];
+
+        try {
+            // Update employee statuses
+            const updatePromises = employeesToUpdate.map(emp => employeeApi.update(emp.id, { status: bulkStatus }));
+            await Promise.all(updatePromises);
+            
+            // If status is 'left', check them out
+            if (bulkStatus === 'left') {
+                const checkoutPromises: Promise<any>[] = [];
+                employeesToUpdate.forEach(emp => {
+                    const assignment = assignments.find(a => a.employeeId === emp.id && !a.checkOutDate);
+                    if (assignment) {
+                        checkoutPromises.push(assignmentApi.update(assignment.id, { checkOutDate: new Date().toISOString() }));
+                        const room = rooms.find(r => r.id === assignment.roomId);
+                        if (room && room.currentOccupancy > 0) {
+                            checkoutPromises.push(roomApi.update(room.id, { currentOccupancy: room.currentOccupancy - 1, status: 'available' }));
+                        }
+                    }
+                });
+                await Promise.all(checkoutPromises);
+            }
+            
+            logActivity(user!.username, `Bulk updated status to ${bulkStatus} for ${employeesToUpdate.length} employees.`);
+            showToast(t('employees.bulkStatusUpdated', { count: employeesToUpdate.length }), 'success');
+            
+            await fetchEmployees();
+            setSelectedEmployees(new Set());
+        } catch (error) {
+            showToast(t('errors.generic'), 'error');
+        } finally {
+            setIsSubmitting(false);
+            setIsBulkStatusModalOpen(false);
+        }
+    };
+    
+    const numSelected = selectedEmployees.size;
+    const numTotalOnPage = filteredEmployees.length;
+    const isAllSelected = numTotalOnPage > 0 && numSelected === numTotalOnPage;
+    const isIndeterminate = numSelected > 0 && numSelected < numTotalOnPage;
+    
     const formInputClass = "w-full p-2 border border-slate-300 rounded bg-slate-50 dark:bg-slate-700 dark:border-slate-600 text-slate-900 dark:text-slate-200";
     const isExporting = isPdfExporting || isExcelExporting;
 
@@ -364,17 +448,23 @@ const EmployeesPage: React.FC = () => {
                     <div className="p-4 border-b dark:border-slate-700 space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <input type="text" placeholder={t('employees.search')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600 md:col-span-2"/>
-                            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600">
-                                <option value="all">{t('employees.allStatuses')}</option>
-                                <option value="active">{t('statuses.active')}</option>
-                                <option value="left">{t('statuses.left')}</option>
-                            </select>
-                            <select value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)} className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600">
-                                <option value="all">{t('employees.allDepartments')}</option>
-                                {DEPARTMENTS.map(dept => (
-                                    <option key={dept} value={dept}>{t(`departments.${dept}`)}</option>
-                                ))}
-                            </select>
+                            <div>
+                                <label htmlFor="status-filter" className="sr-only">{t('employees.status')}</label>
+                                <select id="status-filter" aria-label={t('employees.status')} value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600">
+                                    <option value="all">{t('employees.allStatuses')}</option>
+                                    <option value="active">{t('statuses.active')}</option>
+                                    <option value="left">{t('statuses.left')}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="department-filter" className="sr-only">{t('employees.department')}</label>
+                                <select id="department-filter" aria-label={t('employees.department')} value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)} className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-slate-700 dark:border-slate-600">
+                                    <option value="all">{t('employees.allDepartments')}</option>
+                                    {DEPARTMENTS.map(dept => (
+                                        <option key={dept} value={dept}>{t(`departments.${dept}`)}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                          <div className="flex justify-end items-center gap-2">
                             <button onClick={() => setIsExportModalOpen(true)} className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 text-sm disabled:opacity-50" disabled={isExporting}>
@@ -385,12 +475,20 @@ const EmployeesPage: React.FC = () => {
                             {canManage && <button onClick={openAddModal} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"><i className="fas fa-plus me-2"></i>{t('employees.add')}</button>}
                         </div>
                     </div>
+                    
+                    {numSelected > 0 && canManage && (
+                        <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border-b dark:border-slate-700 flex items-center gap-4">
+                            <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">{t('employees.employeesSelected', { count: numSelected })}</span>
+                            <button onClick={() => setIsBulkStatusModalOpen(true)} className="px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700">{t('employees.changeStatus')}</button>
+                        </div>
+                    )}
 
                     {loading ? (<div className="p-6 text-center">{t('loading')}...</div>) : (
                         <div className="relative overflow-x-auto">
                             <table className="w-full text-sm text-left rtl:text-right text-slate-500 dark:text-slate-400">
                                 <thead className="text-xs text-slate-700 uppercase bg-slate-100 dark:bg-slate-700 dark:text-slate-400">
                                     <tr>
+                                        {canManage && <th scope="col" className="p-4"><input type="checkbox" ref={el => { if (el) { el.indeterminate = isIndeterminate; } }} checked={isAllSelected} onChange={handleSelectAll} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600" aria-label={t('employees.selectAll')} /></th>}
                                         <th scope="col" className="px-6 py-3">{t('employees.firstName')}</th>
                                         <th scope="col" className="px-6 py-3">{t('employees.lastName')}</th>
                                         <th scope="col" className="px-6 py-3">{t('employees.employeeId')}</th>
@@ -403,7 +501,8 @@ const EmployeesPage: React.FC = () => {
                                 </thead>
                                 <tbody>
                                     {filteredEmployees.map(emp => (
-                                        <tr key={emp.id} className="bg-white border-b dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600">
+                                        <tr key={emp.id} className={`border-b dark:border-slate-700 ${selectedEmployees.has(emp.id) ? 'bg-primary-50 dark:bg-slate-900' : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-600'}`}>
+                                            {canManage && <td className="p-4"><input type="checkbox" checked={selectedEmployees.has(emp.id)} onChange={() => handleSelectEmployee(emp.id)} className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600" aria-label={t('employees.selectEmployee', { name: `${emp.firstName} ${emp.lastName}` })} /></td>}
                                             <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap dark:text-white">{emp.firstName}</th>
                                             <td className="px-6 py-4">{emp.lastName}</td>
                                             <td className="px-6 py-4">{emp.employeeId}</td>
@@ -505,6 +604,26 @@ const EmployeesPage: React.FC = () => {
                 </div>
             )}
 
+            {isBulkStatusModalOpen && canManage && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                        <h2 className="text-xl font-bold mb-4">{t('employees.bulkStatusModalTitle')}</h2>
+                        <p className="mb-4 text-slate-600 dark:text-slate-400">{t('employees.confirmBulkStatusChange', { count: selectedEmployees.size, status: t(`statuses.${bulkStatus}`) })}</p>
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">{t('employees.newStatus')}</label>
+                            <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value as any)} className={formInputClass}>
+                                <option value="active">{t('statuses.active')}</option>
+                                <option value="left">{t('statuses.left')}</option>
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-4">
+                            <button type="button" onClick={() => setIsBulkStatusModalOpen(false)} className="px-4 py-2 bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500 rounded">{t('cancel')}</button>
+                            <button onClick={handleConfirmBulkStatusChange} disabled={isSubmitting} className="px-4 py-2 bg-primary-600 text-white rounded disabled:bg-primary-400">{isSubmitting ? `${t('saving')}...` : t('save')}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <ExportOptionsModal
                 isOpen={isExportModalOpen}
                 onClose={() => setIsExportModalOpen(false)}

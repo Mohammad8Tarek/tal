@@ -17,6 +17,8 @@ jest.mock('../services/apiService', () => {
       ...originalModule.authApi,
       login: jest.fn(),
     },
+    // FIX: Call mockResolvedValue with `undefined` to resolve with 'undefined'. This correctly matches the Promise<void> type and avoids TypeScript inference errors.
+    resetDatabase: jest.fn().mockResolvedValue(undefined), // Add mock for resetDatabase
   };
 });
 
@@ -25,13 +27,15 @@ jest.mock('../services/apiService', () => {
 // A type alias for the login function signature is defined here to provide strong typing for the mock.
 type LoginApiFunction = (credentials: { username: string; password: string; }) => Promise<{ user: User; token: string }>;
 const mockedLogin = authApi.login as jest.Mock<LoginApiFunction>;
+const mockedResetDatabase = resetDatabase as jest.Mock;
 
 describe('LoginPage', () => {
   beforeEach(async () => {
     // Reset mocks and storage before each test
     mockedLogin.mockClear();
-    // The new reset function is async
-    await resetDatabase();
+    mockedResetDatabase.mockClear();
+    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('renders login form correctly', () => {
