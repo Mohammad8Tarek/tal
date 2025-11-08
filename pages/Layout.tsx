@@ -87,14 +87,6 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
     };
   }, []);
 
-  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center p-3 rounded-lg group transition-colors duration-200 ${
-      isActive 
-        ? 'bg-primary-100 text-primary-700 dark:bg-slate-700 dark:text-primary-300 font-semibold' 
-        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-    }`;
-
-
   const userRoles = user?.roles || [];
   const isSuperAdminOrAdmin = userRoles.some(r => ['super_admin', 'admin'].includes(r));
 
@@ -217,17 +209,30 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
         `} 
         aria-label="Sidebar">
         <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-slate-800">
-          <ul className="space-y-2 font-medium">
+          <ul className="space-y-1.5 pt-2">
             {navLinks.map(link => link.visible && (
               <li key={link.to}>
                 <NavLink 
                   to={link.to} 
                   end={link.to === "/"} 
-                  className={navLinkClass}
                   onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `relative flex items-center px-4 py-3 rounded-md group transition-all duration-200 font-medium ${
+                      isActive 
+                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-300 font-semibold' 
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`
+                  }
                 >
-                  <i className={`fas ${link.icon} w-5 h-5 transition duration-75 group-hover:text-slate-900 dark:group-hover:text-white`}></i>
-                  <span className="ms-3">{link.label}</span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <span className={`absolute w-1 rounded-full bg-primary-500 dark:bg-primary-400 inset-y-2.5 ${language === 'ar' ? 'right-0' : 'left-0'}`}></span>
+                      )}
+                      <i className={`fas ${link.icon} w-5 h-5 transition duration-75 ${isActive ? 'text-primary-600 dark:text-primary-300' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-500 dark:group-hover:text-slate-400'}`}></i>
+                      <span className="ms-4">{link.label}</span>
+                    </>
+                  )}
                 </NavLink>
               </li>
             ))}

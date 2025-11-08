@@ -5,7 +5,7 @@ import { employeeApi, logActivity } from '../services/apiService';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
-import { translations } from '../translations';
+import { translations } from '../services/translations';
 import { useExportSettings } from '../context/ExportSettingsContext';
 import { exportToPdf, exportToExcel } from '../services/exportService';
 import ExportOptionsModal from '../components/ExportOptionsModal';
