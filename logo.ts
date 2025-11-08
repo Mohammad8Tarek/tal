@@ -1,0 +1,2 @@
+// Default placeholder logo (a simple blue square). This is used if no custom logo is uploaded in settings.
+export const defaultLogoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABASURBVHhe7cEBAQAAAIIg/69uSEABAAAAAAAAAAAAAAB8G4gAATEDAAEAAAAAAAAAAAAAALg3IgAATEDAAEAAAPSDAAEAAAAAABoG0hMAAQAAAABJRU5ErkJggg==';
