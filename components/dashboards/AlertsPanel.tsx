@@ -18,11 +18,11 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ expiringContracts }) => {
         return Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
     }
     
-    const neumorphicContainer = "bg-slate-50 dark:bg-slate-800 rounded-2xl animate-fade-in-up shadow-[5px_5px_10px_#d1d9e6,-5px_-5px_10px_#ffffff] dark:shadow-[5px_5px_10px_#1e293b,-5px_-5px_10px_#334155]";
+    const cardContainer = "bg-white dark:bg-slate-800 rounded-2xl animate-fade-in-up shadow-md";
 
 
     return (
-        <div className={neumorphicContainer}>
+        <div className={cardContainer}>
             <h3 className="text-lg font-semibold p-4 border-b dark:border-slate-700 text-yellow-600 dark:text-yellow-400 flex items-center">
                 <i className="fas fa-exclamation-triangle mr-3"></i>
                 {t('dashboard.alerts.title')}

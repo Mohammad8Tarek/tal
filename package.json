@@ -1,12 +1,29 @@
 {
+  "name": "copy-of-copy-of-new-of-tal-avenue-staff-housing",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/sql.js": "^1.4.9",
-    "bcryptjs": "^3.0.3",
-    "sql.js": "^1.13.0"
+    "react-dom": "^19.2.0",
+    "react": "^19.2.0",
+    "react-router-dom": "^7.9.5",
+    "recharts": "^3.3.0",
+    "@testing-library/react": "^16.3.0",
+    "@jest/globals": "^30.2.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "jspdf": "^3.0.3",
+    "xlsx": "^0.18.5",
+    "jspdf-autotable": "^5.0.2"
   },
   "devDependencies": {
-    "jimp": "^0.16.1",
-    "typescript": "~5.8.2"
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
   }
 }

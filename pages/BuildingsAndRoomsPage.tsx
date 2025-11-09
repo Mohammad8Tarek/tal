@@ -257,7 +257,10 @@ const BuildingsAndRoomsPage: React.FC = () => {
             rooms.forEach(room => {
                 if (room.currentOccupancy > 0 || room.status === 'occupied' || room.status === 'reserved') {
                     const buildingId = floorToBuildingMap.get(room.floorId);
-                    if(buildingId) occupiedBuildingIds.add(buildingId);
+                    // FIX: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+                    if (typeof buildingId === 'number') {
+                        occupiedBuildingIds.add(buildingId);
+                    }
                 }
             });
             buildingsToUpdate.forEach(b => {

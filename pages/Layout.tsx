@@ -344,13 +344,13 @@ const Layout: React.FC<LayoutProps> = ({ theme, toggleTheme }) => {
       <aside 
         id="logo-sidebar" 
         ref={sidebarRef}
-        className={`fixed top-0 z-40 w-72 h-screen pt-20 transition-transform bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 
+        className={`fixed top-0 z-40 w-72 h-screen pt-20 transition-transform bg-slate-200 border-slate-300 dark:bg-slate-800 dark:border-slate-700 
             ${language === 'ar' ? 'right-0 border-l' : 'left-0 border-r'} 
             ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full' : '-translate-x-full')}
             sm:translate-x-0
         `} 
         aria-label="Sidebar">
-        <div className="h-full px-3 pb-4 overflow-y-auto bg-slate-50 dark:bg-slate-800">
+        <div className="h-full px-3 pb-4 overflow-y-auto bg-slate-200 dark:bg-slate-800">
           <ul className="space-y-1.5 pt-2">
             {navLinks.map(link => link.visible && (
               <li key={link.to}>
